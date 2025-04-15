@@ -4,6 +4,7 @@ import concrete.goonie.ChartConfig;
 import concrete.goonie.core.renders.axis.XAxis;
 import concrete.goonie.core.renders.axis.YAxis;
 
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ComponentAdapter;
@@ -15,11 +16,14 @@ public class Chart extends JPanel {
     private final ChartConfig config;
     private final ChartMouseHandler chartMouseHandler;
     private final YAxis yAxis = new YAxis();
-    private XAxis xAxis = new XAxis();
+    private final XAxis xAxis ;
 
     public Chart(ChartConfig config) {
         this.config = config;
         this.chartMouseHandler = new ChartMouseHandler(this);
+        this.xAxis = new XAxis(ENUM_TIMEFRAME.PERIOD_H1);
+
+        xAxis.setConfig(config);
         init();
     }
 

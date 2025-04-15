@@ -12,7 +12,7 @@ public class Main {
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setSize(1000, 700);
 
-        ChartConfig config = ChartThemes.darkTheme();
+        ChartConfig config = ChartThemes.lightTheme();
         Chart view = new Chart(config);
 
         frame.setContentPane(view);

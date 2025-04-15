@@ -16,8 +16,8 @@ public class ChartMouseHandler extends MouseAdapter implements MouseMotionListen
     private final Chart chartPanel;
     private AffineTransform transform;
 
-    private double scaleX = 1.0;
-    private double scaleY = 1.0;
+    private double scaleX = 0.0;
+    private double scaleY = 0.0;
     private double translateX = 0;
     private double translateY = 0;
 
@@ -189,6 +189,7 @@ public class ChartMouseHandler extends MouseAdapter implements MouseMotionListen
             translateY -= (flippedMouseY - translateY) * (zoomFactor - 1);
             scaleX *= zoomFactor;
             scaleY *= zoomFactor;
+            System.out.println(scaleX+", "+scaleY);
         } else if (insideRight) {
             double anchorX = width - 50;
             translateX -= (anchorX - translateX) * (zoomFactor - 1);
@@ -207,8 +208,8 @@ public class ChartMouseHandler extends MouseAdapter implements MouseMotionListen
      * Resets the view to default zoom and translation.
      */
     public void resetView() {
-        scaleX = 1.0;
-        scaleY = 1.0;
+        scaleX = 19.0;
+        scaleY = 19.0;
         translateX = 0;
         translateY = 0;
         updateTransform();
