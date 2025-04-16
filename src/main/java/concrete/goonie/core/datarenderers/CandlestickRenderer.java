@@ -99,8 +99,8 @@ public class CandlestickRenderer extends Renderer {
         Double minY = null;
         Double maxY = null;
 
-        int n = (int) (transform.getScaleX() - 1);
-        int barWidth = (n % 2 == 0 ? n - 1 : n) - 2;
+        int n = (int) (transform.getScaleX() );
+        int barWidth = (n % 2 == 0 ? n - 1 : n) - 1;
         if (barWidth < 3) barWidth = 3;
 
         for (int i = 0; i < candles.size(); i++) {
@@ -123,7 +123,7 @@ public class CandlestickRenderer extends Renderer {
             int yHigh = (int) highPoint.getY();
             int yLow = (int) lowPoint.getY();
 
-            if (x + barWidth / 2 < 0 || x - barWidth / 2 > width-config.getyPad() || yHigh > height || yLow < 0) {
+            if (x + barWidth / 2 < 0 || x - barWidth / 2 > width-config.getyPad()-config.getMarginRight()/2 || yHigh > height || yLow < 0) {
                 continue;
             }
 

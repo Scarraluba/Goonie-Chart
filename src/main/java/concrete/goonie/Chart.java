@@ -65,4 +65,5 @@ public class Chart extends JPanel {
     public ChartConfig getConfig() {
         return config;
     }
+
 }

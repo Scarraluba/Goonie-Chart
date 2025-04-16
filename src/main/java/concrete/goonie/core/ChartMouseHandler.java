@@ -1,6 +1,7 @@
 package concrete.goonie.core;
 
 import concrete.goonie.Chart;
+import concrete.goonie.ChartConfig;
 
 import java.awt.*;
 import java.awt.event.*;
@@ -16,7 +17,7 @@ import java.awt.geom.AffineTransform;
  */
 public class ChartMouseHandler extends MouseAdapter implements MouseMotionListener, MouseWheelListener, KeyListener {
 
-    private boolean autoScaleY = false;
+    private boolean autoScaleY = true;
     private double minVisibleY = Double.MAX_VALUE;
     private double maxVisibleY = Double.MIN_VALUE;
 
@@ -64,10 +65,26 @@ public class ChartMouseHandler extends MouseAdapter implements MouseMotionListen
 
     @Override
     public void keyPressed(KeyEvent e) {
-        if (e.getKeyCode() == KeyEvent.VK_J) {
-            translateToLastCandle(4328, 15440);
+
+        switch (e.getKeyCode()) {
+            case KeyEvent.VK_LEFT:
+                translateX += 1*scaleX;  // Pan left, adjusting for zoom level
+                break;
+            case KeyEvent.VK_RIGHT:
+                translateX -= 1*scaleX;  // Pan right, adjusting for zoom level
+                break;
+            case KeyEvent.VK_UP:
+                translateY -= 0.5*scaleY;  // Pan up, adjusting for zoom level
+                break;
+            case KeyEvent.VK_DOWN:
+                translateY += 0.5*scaleY;  // Pan down, adjusting for zoom level
+                break;
+            case KeyEvent.VK_J:
+                translateToLastCandle(4328, 15440);
+                break;
         }
-        System.out.println("J");
+        updateTransform();
+        chartPanel.repaint();
     }
 
     @Override
@@ -208,8 +225,9 @@ public class ChartMouseHandler extends MouseAdapter implements MouseMotionListen
         double zoomFactor = e.getWheelRotation() > 0 ? 0.9 : 1.1;
 
         boolean ctrlDown = (e.getModifiersEx() & InputEvent.CTRL_DOWN_MASK) != 0;
-        boolean insideRight = mouseX <= width - 35;
-        boolean insideBottom = mouseY <= height - 35;
+        ChartConfig config = chartPanel.getConfig();
+        boolean insideRight = mouseX <= width - config.getyPad();
+        boolean insideBottom = mouseY <= height - config.getMarginBottom();
 
         if (ctrlDown) {
             // Anchor to mouse X, scale X only
@@ -359,7 +377,7 @@ public class ChartMouseHandler extends MouseAdapter implements MouseMotionListen
         if (minVisibleY == Double.MAX_VALUE || maxVisibleY == Double.MIN_VALUE) return;
 
         double range = maxVisibleY - minVisibleY;
-        double padding = range * 0.1;
+        double padding = range * 0.5;
 
         // Apply padding
         double paddedMinY = minVisibleY - padding;
@@ -368,9 +386,7 @@ public class ChartMouseHandler extends MouseAdapter implements MouseMotionListen
 
         // Scale to fit padded range
         scaleY = (height * 0.9) / paddedRange;
-
-        // Corrected: center content vertically within chart panel
-        translateY = height - (paddedMaxY * scaleY); // Align top of content to top of chart
+        translateY = height - (paddedMaxY * scaleY);
 
         updateTransform();
     }
@@ -414,8 +430,8 @@ public class ChartMouseHandler extends MouseAdapter implements MouseMotionListen
 
         }
         translateY = centerY - (value * scaleY);
-
         updateTransform();
+        adjustYScaleToFitContent();
         chartPanel.repaint();
     }
 
@@ -423,4 +439,5 @@ public class ChartMouseHandler extends MouseAdapter implements MouseMotionListen
     public void translateToLastCandle(int time, double value) {
         translateToLastCandle(time, value, false, true);
     }
+
 }
