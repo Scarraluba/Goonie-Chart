@@ -1,4 +1,4 @@
-package concrete.goonie.core.renders;
+package concrete.goonie.core;
 
 import concrete.goonie.ChartConfig;
 
@@ -23,4 +23,7 @@ public abstract class Renderer {
 
     protected abstract void move(double dx, double dy);
 
+    public void autoScaleYAxis(ChartMouseHandler mouseHandler, int width, int height) {
+
+    }
 }

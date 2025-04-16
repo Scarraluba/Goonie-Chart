@@ -1,4 +1,4 @@
-package concrete.goonie.core.renders.axis;
+package concrete.goonie.core.axis;
 
 /**
  * Defines possible positions for an axis on a chart.

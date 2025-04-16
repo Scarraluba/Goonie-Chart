@@ -1,7 +1,7 @@
-package concrete.goonie.core.renders.axis;
+package concrete.goonie.core.axis;
 
 import concrete.goonie.ChartConfig;
-import concrete.goonie.core.renders.Renderer;
+import concrete.goonie.core.Renderer;
 
 /**
  * The {@code Axis} class is an abstract base class for chart axis renderers (e.g., X and Y axes).
@@ -12,15 +12,15 @@ import concrete.goonie.core.renders.Renderer;
  *
  * @see AxisPosition
  * @see ChartConfig
- * @see concrete.goonie.core.renders.axis.XAxis
- * @see concrete.goonie.core.renders.axis.YAxis
+ * @see XAxis
+ * @see YAxis
  */
 abstract class Axis extends Renderer {
 
     /**
      * The length of the axis ticks in pixels.
      */
-    protected int tickLength = 5;
+    protected int tickLength = 3;
 
     /**
      * The position of the axis relative to the chart (e.g., LEFT, RIGHT, TOP, BOTTOM).

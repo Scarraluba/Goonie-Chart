@@ -1,4 +1,4 @@
-package concrete.goonie.core.renders.axis;
+package concrete.goonie.core.axis;
 
 import concrete.goonie.ChartConfig;
 
@@ -79,14 +79,14 @@ public class YAxis extends Axis {
             transform.transform(pt, pt);
             double screenY = pt.getY();
 
-            if (screenY > 0 && screenY < height) {
+            if (screenY > 0 && screenY < height-config.getMarginBottom()) {
                 String label = decimalFormat.format(y).replace(',', '.');
                 FontMetrics fm = g2d.getFontMetrics();
                 int labelY = (int) screenY + fm.getAscent() / 4;
 
                 if (position == AxisPosition.RIGHT) {
                     int labelWidth = fm.stringWidth(label);
-                    g2d.drawString(label, labelX + (maxLabelWidth - labelWidth), labelY);
+                    g2d.drawString(label, labelX + (maxLabelWidth - labelWidth)-(config.getMarginRight()/3), labelY);
                 } else {
                     g2d.drawString(label, labelX, labelY);
                 }
@@ -103,10 +103,11 @@ public class YAxis extends Axis {
      * @param height    the chart height
      */
     private void drawAxisLines(Graphics2D g2d, AffineTransform transform, int width, int height) {
-        g2d.setColor(config.getAxisColor());
-        int axisX = (position == AxisPosition.RIGHT) ? width - 1 : 0;
+
+        int axisX = (position == AxisPosition.RIGHT) ? width - maxLabelWidth-(config.getMarginRight()) : 0;
 
         g2d.drawLine(axisX, 0, axisX, height);
+
 
         try {
             topLeft = transform.inverseTransform(new Point2D.Double(0, 0), null);
@@ -128,19 +129,20 @@ public class YAxis extends Axis {
             transform.transform(pt, pt);
             double screenY = pt.getY();
 
-            if (screenY > 0 && screenY < height) {
-                g2d.drawLine(0, (int) screenY, width, (int) screenY);
+            if (screenY > 0 && screenY < height - config.getMarginBottom()) {
+                g2d.drawLine(0, (int) screenY, width-config.getyPad(), (int) screenY);
 
-                g2d.setColor(config.getAxisColor());
-                tickLength = 10;
                 if (position == AxisPosition.RIGHT) {
-                    g2d.drawLine(axisX - tickLength, (int) screenY, axisX, (int) screenY);
+                    g2d.drawLine(width - tickLength, (int) screenY, width, (int) screenY);
                 } else {
-                    g2d.drawLine(axisX, (int) screenY, axisX + tickLength, (int) screenY);
+                    g2d.drawLine(width, (int) screenY, width + tickLength, (int) screenY);
                 }
-                g2d.setColor(config.getGridColor());
+
             }
         }
+        g2d.setColor(config.getBackgroundColor());
+        g2d.fillRect(axisX,0,Math.abs(width-axisX)-tickLength,height);
+        config.setyPad(Math.abs(width-axisX));
     }
 
     /**

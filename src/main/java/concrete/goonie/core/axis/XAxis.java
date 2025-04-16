@@ -1,7 +1,8 @@
-package concrete.goonie.core.renders.axis;
+package concrete.goonie.core.axis;
 
 import concrete.goonie.ChartConfig;
 import concrete.goonie.core.ENUM_TIMEFRAME;
+
 import java.awt.*;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.NoninvertibleTransformException;
@@ -11,13 +12,15 @@ import java.time.temporal.ChronoField;
 import java.util.HashMap;
 import java.util.Map;
 
+import static concrete.goonie.ChartConfig.getFont;
+
 /**
  * The {@code XAxis} class is responsible for rendering the time-based horizontal axis of a chart.
  * It calculates and draws grid lines, time labels, and adjusts spacing dynamically based on the zoom level and timeframe.
  *
  * <p>This class supports caching mechanisms to improve performance during frequent repaint operations
  * and adapts to user interactions through transformations.</p>
- *
+ * <p>
  * Example usage:
  * <pre>{@code
  * XAxis xAxis = new XAxis(ENUM_TIMEFRAME.PERIOD_M15);
@@ -46,17 +49,27 @@ public class XAxis extends Axis {
 
     // Month abbreviations used in label formatting
     private static final Map<Integer, String> MONTH_ABBREV = new HashMap<>();
+
     static {
-        MONTH_ABBREV.put(1, "Jan"); MONTH_ABBREV.put(2, "Feb"); MONTH_ABBREV.put(3, "Mar");
-        MONTH_ABBREV.put(4, "Apr"); MONTH_ABBREV.put(5, "May"); MONTH_ABBREV.put(6, "Jun");
-        MONTH_ABBREV.put(7, "Jul"); MONTH_ABBREV.put(8, "Aug"); MONTH_ABBREV.put(9, "Sep");
-        MONTH_ABBREV.put(10, "Oct"); MONTH_ABBREV.put(11, "Nov"); MONTH_ABBREV.put(12, "Dec");
+        MONTH_ABBREV.put(1, "Jan");
+        MONTH_ABBREV.put(2, "Feb");
+        MONTH_ABBREV.put(3, "Mar");
+        MONTH_ABBREV.put(4, "Apr");
+        MONTH_ABBREV.put(5, "May");
+        MONTH_ABBREV.put(6, "Jun");
+        MONTH_ABBREV.put(7, "Jul");
+        MONTH_ABBREV.put(8, "Aug");
+        MONTH_ABBREV.put(9, "Sep");
+        MONTH_ABBREV.put(10, "Oct");
+        MONTH_ABBREV.put(11, "Nov");
+        MONTH_ABBREV.put(12, "Dec");
     }
 
     private LocalDateTime startDateTime = LocalDateTime.of(2024, 1, 1, 0, 0);
     private ENUM_TIMEFRAME timeframe;
     private double lastTransformHash = -1;
     private double previousGridSpacing;
+    private int axisY;
 
     /**
      * Constructs a new XAxis instance for the given timeframe.
@@ -86,26 +99,44 @@ public class XAxis extends Axis {
             lastTransformHash = currentTransformHash;
         }
 
-        int axisY = (position == AxisPosition.TOP) ? 0 : height - 1;
-        int tickYStart = (position == AxisPosition.TOP) ? axisY + tickLength : axisY - tickLength;
-        int labelY = (position == AxisPosition.TOP) ? tickYStart + 12 : tickYStart - 2;
+        int y2 = height - config.getMarginBottom();
+        axisY = (position == AxisPosition.TOP) ? 0 : y2;
 
-        g2d.setColor(config.getAxisColor());
-        g2d.drawLine(0, axisY, width, axisY);
+        // Draw the main axis line
+        //g2d.setColor(config.getAxisColor());
+        //g2d.drawLine(0, axisY, width, axisY);
 
-
-        for (int i = 0; i < cachedGridPositions.length; i++) {
-            double screenX = cachedGridPositions[i];
-            if (screenX < 0 || screenX > width) continue;
+        // Draw grid lines
+        for (double screenX : cachedGridPositions) {
+            if (screenX < 0 || screenX > width - config.getyPad()) continue;
 
             g2d.setColor(config.getGridColor());
-            g2d.drawLine((int) screenX, 0, (int) screenX, height);
-            g2d.setColor(config.getAxisColor());
+            g2d.drawLine((int) screenX, 0, (int) screenX, y2);
+        }
+        g2d.setColor(config.getBackgroundColor());
+        g2d.fillRect(0, axisY, width, config.getMarginBottom());
+        drawLabels(g2d, transform, width, height);
+    }
+
+    public void drawLabels(Graphics2D g2d, AffineTransform transform, int width, int height) {
+        if (lastTransformHash != transform.getTranslateX() + transform.getScaleX() + width) {
+            calculateGridPositions(g2d, transform, width);
+        }
+
+        axisY = (position == AxisPosition.TOP) ? 0 : height - 1;
+        int tickYStart = (position == AxisPosition.TOP) ? axisY + tickLength : axisY - tickLength;
+        int labelY = (position == AxisPosition.TOP) ? tickYStart + 12 : tickYStart - (config.getMarginBottom() / 3);
+
+        // Draw ticks and labels-
+        for (int i = 0; i < cachedGridPositions.length; i++) {
+            double screenX = cachedGridPositions[i];
+            if (screenX < 0 || screenX > width - config.getyPad()) continue;
+            g2d.setColor(config.getGridColor());
             g2d.drawLine((int) screenX, axisY, (int) screenX, tickYStart);
 
             g2d.setFont(cachedFonts[i]);
             g2d.setColor(config.getTextColor());
-            g2d.drawString(cachedLabels[i], (int) screenX - cachedLabelWidths[i] / 2, labelY);
+            g2d.drawString(String.valueOf(i), (int) screenX - cachedLabelWidths[i] / 2, labelY);
         }
     }
 
@@ -170,8 +201,42 @@ public class XAxis extends Axis {
         double minDataSpacing = MIN_PIXEL_SPACING / pixelsPerUnit;
         double minSeconds = minDataSpacing * timeframe.getDuration().getSeconds();
 
-        int[] intervals = {1, 2, 5, 10, 15, 30, 60, 120, 300, 600, 900, 1800, 3600,
-                7200, 14400, 21600, 43200, 86400, 172800, 604800, 2592000};
+        int[] intervals = {
+                1,          // 1 second
+                2,
+                5,
+                10,
+                15,
+                30,
+                60,         // 1 minute
+                120,        // 2 minutes
+                300,        // 5 minutes
+                600,        // 10 minutes
+                900,        // 15 minutes
+                1800,       // 30 minutes
+                3600,       // 1 hour
+                7200,       // 2 hours
+                14400,      // 4 hours
+                21600,      // 6 hours
+                43200,      // 12 hours
+                86400,      // 1 day
+                172800,     // 2 days
+                604800,     // 1 week
+                2592000,    // 1 month (30 days)
+                7776000,    // 3 months
+                15552000,   // 6 months
+                31536000,   // 1 year
+                63072000,   // 2 years
+                94608000,   // 3 years
+                126144000,  // 4 years
+                157680000,  // 5 years
+                189216000,  // 6 years
+                220752000,  // 7 years
+                252288000,  // 8 years
+                283824000,  // 9 years
+                315360000   // 10 years
+        };
+
 
         double previousSeconds = previousGridSpacing * timeframe.getDuration().getSeconds();
         double gridCount = visibleRange / previousGridSpacing;
@@ -239,13 +304,13 @@ public class XAxis extends Axis {
      */
     private Font getLabelFont(LocalDateTime current, LocalDateTime previous) {
         if (previous == null || current.getYear() != previous.getYear()) {
-            return new Font("SansSerif", Font.BOLD, 12);
+            return getFont(Font.BOLD, 15);
         } else if (current.getMonth() != previous.getMonth()) {
-            return new Font("SansSerif", Font.BOLD, 11);
+            return getFont(Font.BOLD, 14);
         } else if (current.getDayOfMonth() != previous.getDayOfMonth()) {
-            return new Font("SansSerif", Font.BOLD, 10);
+            return getFont(Font.BOLD, 14);
         } else {
-            return new Font("SansSerif", Font.PLAIN, 9);
+            return getFont(Font.PLAIN, 12);
         }
     }
 

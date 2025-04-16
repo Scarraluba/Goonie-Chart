@@ -14,7 +14,12 @@ import java.awt.geom.AffineTransform;
  * zooming via mouse wheel. Automatically adjusts the chart's AffineTransform
  * to reflect user interactions.
  */
-public class ChartMouseHandler extends MouseAdapter implements MouseMotionListener, MouseWheelListener {
+public class ChartMouseHandler extends MouseAdapter implements MouseMotionListener, MouseWheelListener, KeyListener {
+
+    private boolean autoScaleY = false;
+    private double minVisibleY = Double.MAX_VALUE;
+    private double maxVisibleY = Double.MIN_VALUE;
+
     private final Chart chartPanel;
     private AffineTransform transform;
 
@@ -30,6 +35,7 @@ public class ChartMouseHandler extends MouseAdapter implements MouseMotionListen
 
     private DragMode dragMode = DragMode.BOTH;
 
+
     private enum DragMode {
         NONE, HORIZONTAL, VERTICAL, BOTH
     }
@@ -44,9 +50,29 @@ public class ChartMouseHandler extends MouseAdapter implements MouseMotionListen
         this.transform = new AffineTransform();
         resetView();
 
+        chartPanel.setFocusable(true);
         chartPanel.addMouseMotionListener(this);
         chartPanel.addMouseListener(this);
         chartPanel.addMouseWheelListener(this);
+        chartPanel.addKeyListener(this);
+    }
+
+    @Override
+    public void keyTyped(KeyEvent e) {
+
+    }
+
+    @Override
+    public void keyPressed(KeyEvent e) {
+        if (e.getKeyCode() == KeyEvent.VK_J) {
+            translateToLastCandle(4328, 15440);
+        }
+        System.out.println("J");
+    }
+
+    @Override
+    public void keyReleased(KeyEvent e) {
+
     }
 
     @Override
@@ -61,8 +87,8 @@ public class ChartMouseHandler extends MouseAdapter implements MouseMotionListen
      * Adjusts the cursor type and sets the drag mode depending on the mouse position.
      */
     private void determineCursorAndDragMode(int x, int y) {
-        boolean nearRight = x >= width - 35;
-        boolean nearBottom = y >= height - 35;
+        boolean nearRight = x >= width - chartPanel.getConfig().getyPad();
+        boolean nearBottom = y >= height - chartPanel.getConfig().getMarginBottom();
 
         if (nearRight && nearBottom) {
             setDefaultCursor();
@@ -179,43 +205,45 @@ public class ChartMouseHandler extends MouseAdapter implements MouseMotionListen
     public void mouseWheelMoved(MouseWheelEvent e) {
         int mouseX = e.getX();
         int mouseY = e.getY();
-
         double zoomFactor = e.getWheelRotation() > 0 ? 0.9 : 1.1;
 
+        boolean ctrlDown = (e.getModifiersEx() & InputEvent.CTRL_DOWN_MASK) != 0;
         boolean insideRight = mouseX <= width - 35;
         boolean insideBottom = mouseY <= height - 35;
 
-        if (insideRight && insideBottom) {
+        if (ctrlDown) {
+            // Anchor to mouse X, scale X only
+            translateX -= (mouseX - translateX) * (zoomFactor - 1);
+            scaleX *= zoomFactor;
+        } else if (insideRight && insideBottom) {
             double flippedMouseY = height - mouseY;
             translateX -= (mouseX - translateX) * (zoomFactor - 1);
-            translateY -= (flippedMouseY - translateY) * (zoomFactor - 1);
+            if (!autoScaleY) translateY -= (flippedMouseY - translateY) * (zoomFactor - 1);
             scaleX *= zoomFactor;
-            scaleY *= zoomFactor;
-            System.out.println(scaleX+", "+scaleY);
+            if (!autoScaleY) scaleY *= zoomFactor;
+
         } else if (insideRight) {
             double anchorX = width - 50;
             translateX -= (anchorX - translateX) * (zoomFactor - 1);
             scaleX *= zoomFactor;
         } else if (insideBottom) {
+
             double flippedAnchorY = height - (height / 2);
             translateY -= (flippedAnchorY - translateY) * (zoomFactor - 1);
             scaleY *= zoomFactor;
+
         }
 
         updateTransform();
         chartPanel.repaint();
     }
-    private double minXValue = 0; // Minimum time value (e.g., start of the chart)
-    private double maxXValue = 100; // Maximum time value (e.g., end of the chart)
-    private double minYValue = 50; // Minimum price value (lowest point on chart)
-    private double maxYValue = 150; // Maximum price value (highest point on chart)
 
     /**
      * Resets the view to default zoom and translation.
      */
     public void resetView() {
-        scaleX = 19.0;
-        scaleY = 19.0;
+        scaleX = 20;
+        scaleY = 14;
         translateX = 0;
         translateY = 0;
         updateTransform();
@@ -316,5 +344,83 @@ public class ChartMouseHandler extends MouseAdapter implements MouseMotionListen
      */
     public AffineTransform getYAxisTransform() {
         return createAxisTransform(false);
+    }
+
+    public void updateVisibleYRange(double minY, double maxY) {
+        // Only update the visible range if auto-scaling is enabled
+        if (autoScaleY) {
+            minVisibleY = minY;
+            maxVisibleY = maxY;
+            adjustYScaleToFitContent();
+        }
+    }
+
+    private void adjustYScaleToFitContent() {
+        if (minVisibleY == Double.MAX_VALUE || maxVisibleY == Double.MIN_VALUE) return;
+
+        double range = maxVisibleY - minVisibleY;
+        double padding = range * 0.1;
+
+        // Apply padding
+        double paddedMinY = minVisibleY - padding;
+        double paddedMaxY = maxVisibleY + padding;
+        double paddedRange = paddedMaxY - paddedMinY;
+
+        // Scale to fit padded range
+        scaleY = (height * 0.9) / paddedRange;
+
+        // Corrected: center content vertically within chart panel
+        translateY = height - (paddedMaxY * scaleY); // Align top of content to top of chart
+
+        updateTransform();
+    }
+
+    public void setAutoScaleY(boolean autoScaleY) {
+        boolean wasAutoScale = this.autoScaleY;
+        this.autoScaleY = autoScaleY;
+
+        if (autoScaleY && !wasAutoScale) {
+            // Reset visible range when enabling auto-scale
+            minVisibleY = Double.MAX_VALUE;
+            maxVisibleY = Double.MIN_VALUE;
+            chartPanel.repaint();  // This will trigger a new range calculation
+        }
+    }
+
+    /**
+     * Translates and scales the view to focus on the specified candle position
+     *
+     * @param time       The x-position (time) of the candle to center
+     * @param value      The y-position (price) to center vertically
+     * @param autoScaleX Whether to automatically adjust horizontal scaling
+     * @param autoScaleY Whether to automatically adjust vertical scaling
+     */
+    public void translateToLastCandle(int time, double value, boolean autoScaleX, boolean autoScaleY) {
+        // Calculate desired X translation
+        double targetX = time; // Right padding of 10 units
+        double centerX = width - width / 3;
+
+        if (autoScaleX) {
+            // Auto calculate scaleX to show about 50 candles
+            scaleX = width / 50.0;
+        }
+        translateX = centerX - (targetX * scaleX);
+
+        // Calculate desired Y translation
+        double centerY = height / 2;
+
+        if (autoScaleY) {
+            scaleY = 0.7;
+
+        }
+        translateY = centerY - (value * scaleY);
+
+        updateTransform();
+        chartPanel.repaint();
+    }
+
+    // Overloaded version with default scaling behavior
+    public void translateToLastCandle(int time, double value) {
+        translateToLastCandle(time, value, false, true);
     }
 }

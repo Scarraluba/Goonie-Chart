@@ -1,6 +1,7 @@
 package concrete.goonie;
 
 import java.awt.*;
+import java.io.File;
 
 public class ChartConfig {
     // Colors
@@ -19,9 +20,9 @@ public class ChartConfig {
 
     // Margins
     private int marginTop = 30;
-    private int marginBottom = 30;
-    private int marginLeft = 50;
-    private int marginRight = 20;
+    private int marginBottom = 40;
+    private int marginLeft = 80;
+    private int marginRight = 16;
 
     // Display Options
     private boolean showGrid = true;
@@ -38,11 +39,14 @@ public class ChartConfig {
     private boolean enableAntiAliasing = true;
     private boolean enableZoom = true;
     private boolean enablePan = true;
+    private boolean autoScaleY = true;
 
     // Precision & Format
     private String timeFormat = "HH:mm";
     private int pricePrecision = 2;
     private int maxVisibleBars = 500;
+
+    private int   yPad=45;
 
     // Crosshair styling
     private Stroke crosshairStroke = new BasicStroke(
@@ -170,6 +174,19 @@ public class ChartConfig {
 
     public Theme getTheme() {
         return theme;
+    }
+
+    public void setAutoScaleY(boolean autoScaleY) {
+        this.autoScaleY = autoScaleY;
+    }
+
+
+    public int getyPad() {
+        return yPad;
+    }
+
+    public void setyPad(int yPad) {
+        this.yPad = yPad;
     }
 
     // -------- Fluent Setters --------
@@ -312,9 +329,29 @@ public class ChartConfig {
         this.crosshairStroke = stroke;
         return this;
     }
+    public boolean isAutoScaleY() {
+        return autoScaleY;
+    }
 
     public ChartConfig setTheme(Theme theme) {
         this.theme = theme;
         return this;
+    }
+    public static Font getFont(int style,float size) {
+        Font interFont = new Font("Arial",style, (int) size);
+
+        try {
+            if(Font.BOLD == style){
+                interFont = Font.createFont(Font.TRUETYPE_FONT, new File("src/main/resources/Inter-Bold.ttf")).deriveFont(size);
+            }
+            else{
+                interFont = Font.createFont(Font.TRUETYPE_FONT, new File("src/main/resources/Inter-Regular.ttf")).deriveFont(size);
+            }
+
+            GraphicsEnvironment.getLocalGraphicsEnvironment().registerFont(interFont);
+        } catch (Exception e) {
+          //  System.out.println("Inter font not found, falling back to Roboto/Arial");
+        }
+        return interFont;
     }
 }
