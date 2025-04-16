@@ -3,8 +3,6 @@ package concrete.goonie.core.renders.axis;
 import concrete.goonie.ChartConfig;
 import concrete.goonie.core.renders.Renderer;
 
-import java.awt.*;
-
 /**
  * The {@code Axis} class is an abstract base class for chart axis renderers (e.g., X and Y axes).
  * It provides common configuration such as tick length, axis position, and chart settings.
@@ -29,10 +27,9 @@ abstract class Axis extends Renderer {
      */
     protected AxisPosition position = AxisPosition.RIGHT;
 
-    /**
-     * Chart configuration object containing theme, font, and color information.
-     */
-    protected ChartConfig config = new ChartConfig();
+    Axis(ChartConfig config) {
+        super(config);
+    }
 
     /**
      * Sets the position of the axis.

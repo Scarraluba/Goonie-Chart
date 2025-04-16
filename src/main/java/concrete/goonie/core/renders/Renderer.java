@@ -1,10 +1,21 @@
 package concrete.goonie.core.renders;
 
+import concrete.goonie.ChartConfig;
+
 import java.awt.*;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Point2D;
 
 public abstract class Renderer {
+
+    /**
+     * Chart configuration object containing theme, font, and color information.
+     */
+    protected ChartConfig config;
+
+    protected Renderer(ChartConfig config) {
+        this.config = config;
+    }
 
     protected abstract boolean contains(Point2D point);
 

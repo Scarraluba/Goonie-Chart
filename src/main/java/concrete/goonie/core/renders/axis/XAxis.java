@@ -1,5 +1,6 @@
 package concrete.goonie.core.renders.axis;
 
+import concrete.goonie.ChartConfig;
 import concrete.goonie.core.ENUM_TIMEFRAME;
 import java.awt.*;
 import java.awt.geom.AffineTransform;
@@ -62,7 +63,8 @@ public class XAxis extends Axis {
      *
      * @param timeframe The ENUM_TIMEFRAME that determines how time is mapped to X axis.
      */
-    public XAxis(ENUM_TIMEFRAME timeframe) {
+    public XAxis(ENUM_TIMEFRAME timeframe, ChartConfig config) {
+        super(config);
         this.timeframe = timeframe;
         previousGridSpacing = 80;
     }
@@ -116,12 +118,20 @@ public class XAxis extends Axis {
      */
     private void calculateGridPositions(Graphics2D g2d, AffineTransform transform, int width) {
         try {
+            // Get the inverse transformation to map the screen coordinates back to data coordinates
             Point2D.Double leftData = (Point2D.Double) transform.inverseTransform(new Point2D.Double(0, 0), null);
             Point2D.Double rightData = (Point2D.Double) transform.inverseTransform(new Point2D.Double(width, 0), null);
 
+            // Calculate the min and max X values in the data space
             double minX = Math.min(leftData.x, rightData.x);
             double maxX = Math.max(leftData.x, rightData.x);
 
+            // Calculate the visible range and apply scaling
+            double visibleRange = maxX - minX;
+            double pixelsPerUnit = width / visibleRange; // Pixels per data unit
+            double scaledGridSpacing = previousGridSpacing * pixelsPerUnit;
+
+            // Determine optimal grid spacing
             double gridSpacing = calculateOptimalGridSpacing(minX, maxX, width);
             double firstGrid = Math.floor(minX / gridSpacing) * gridSpacing;
 
@@ -135,7 +145,9 @@ public class XAxis extends Axis {
             for (int i = 0; i < gridCount; i++) {
                 double dataX = firstGrid + i * gridSpacing;
                 Point2D.Double screenPoint = new Point2D.Double(dataX, 0);
-                transform.transform(screenPoint, screenPoint);
+                transform.transform(screenPoint, screenPoint); // Transform data point to screen coordinates
+
+                // Apply the scale to grid positions
                 cachedGridPositions[i] = screenPoint.x;
 
                 LocalDateTime currentDateTime = startDateTime.plus(timeframe.getDuration().multipliedBy((long) dataX));

@@ -1,5 +1,7 @@
 package concrete.goonie.core.renders.axis;
 
+import concrete.goonie.ChartConfig;
+
 import java.awt.*;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Point2D;
@@ -22,11 +24,14 @@ public class YAxis extends Axis {
     private double gridSpacing;
     private double startGrid;
 
-    private Color gridColor = new Color(200, 200, 200, 150);
 
     private int minGridLines = 5;
     private int maxGridLines = 15;
     private int maxLabelWidth = 0;
+
+    public YAxis(ChartConfig config) {
+        super(config);
+    }
 
     /**
      * Draws the full Y-axis, including grid lines and labels.
@@ -116,7 +121,7 @@ public class YAxis extends Axis {
         gridSpacing = getIntervals(range);
         startGrid = Math.floor(effectiveMin / gridSpacing) * gridSpacing;
 
-        g2d.setColor(gridColor);
+        g2d.setColor(config.getGridColor());
 
         for (double y = startGrid; y <= effectiveMax; y += gridSpacing) {
             Point2D pt = new Point2D.Double(0, y);
@@ -133,7 +138,7 @@ public class YAxis extends Axis {
                 } else {
                     g2d.drawLine(axisX, (int) screenY, axisX + tickLength, (int) screenY);
                 }
-                g2d.setColor(gridColor);
+                g2d.setColor(config.getGridColor());
             }
         }
     }

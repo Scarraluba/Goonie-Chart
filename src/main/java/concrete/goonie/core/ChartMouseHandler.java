@@ -1,5 +1,7 @@
 package concrete.goonie.core;
 
+import concrete.goonie.Chart;
+
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.geom.AffineTransform;
@@ -16,8 +18,8 @@ public class ChartMouseHandler extends MouseAdapter implements MouseMotionListen
     private final Chart chartPanel;
     private AffineTransform transform;
 
-    private double scaleX = 0.0;
-    private double scaleY = 0.0;
+    private double scaleX = 19.0;
+    private double scaleY = 19.0;
     private double translateX = 0;
     private double translateY = 0;
 
@@ -203,6 +205,10 @@ public class ChartMouseHandler extends MouseAdapter implements MouseMotionListen
         updateTransform();
         chartPanel.repaint();
     }
+    private double minXValue = 0; // Minimum time value (e.g., start of the chart)
+    private double maxXValue = 100; // Maximum time value (e.g., end of the chart)
+    private double minYValue = 50; // Minimum price value (lowest point on chart)
+    private double maxYValue = 150; // Maximum price value (highest point on chart)
 
     /**
      * Resets the view to default zoom and translation.
