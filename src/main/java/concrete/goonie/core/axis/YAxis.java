@@ -1,6 +1,7 @@
 package concrete.goonie.core.axis;
 
 import concrete.goonie.ChartConfig;
+import concrete.goonie.core.Renderer;
 
 import java.awt.*;
 import java.awt.geom.AffineTransform;
@@ -12,7 +13,7 @@ import java.text.DecimalFormat;
  * including grid lines, tick marks, and value labels. It supports both left and right
  * positions and dynamically calculates suitable grid spacing based on the visible range.
  */
-public class YAxis extends Axis {
+public class YAxis implements Renderer {
 
     private Point2D topLeft = new Point2D.Double();
     private Point2D bottomRight = new Point2D.Double();
@@ -23,14 +24,20 @@ public class YAxis extends Axis {
     private double range;
     private double gridSpacing;
     private double startGrid;
+    private double getRange = -1;
 
-
-    private int minGridLines = 5;
-    private int maxGridLines = 15;
+    // Changed to be based on pixel density rather than fixed counts
+    private int minGridLines = 3;  // Minimum lines regardless of height
+    private int pixelsPerGridLine = 50;  // Aim for one grid line every 50 pixels
     private int maxLabelWidth = 0;
+    private int maxGridLines= 15;
+    private int tickLength = 5;
+
+    private ChartConfig config;
+    private AxisPosition position = AxisPosition.RIGHT;
 
     public YAxis(ChartConfig config) {
-        super(config);
+        this.config=config;
     }
 
     /**
@@ -40,11 +47,13 @@ public class YAxis extends Axis {
      * @param transform the current chart transformation
      * @param width     the total chart width
      * @param height    the total chart height
+     * @return
      */
-    @Override
-    public void draw(Graphics2D g2d, AffineTransform transform, int width, int height) {
+
+    public double draw(Graphics2D g2d, AffineTransform transform, int width, int height) {
         drawAxisLines(g2d, transform, width, height);
         drawAxisLabels(g2d, transform, width, height);
+        return gridSpacing;
     }
 
     /**
@@ -79,7 +88,7 @@ public class YAxis extends Axis {
             transform.transform(pt, pt);
             double screenY = pt.getY();
 
-            if (screenY > 0 && screenY < height-config.getMarginBottom()) {
+            if (screenY > 0 && screenY < height) {
                 String label = decimalFormat.format(y).replace(',', '.');
                 FontMetrics fm = g2d.getFontMetrics();
                 int labelY = (int) screenY + fm.getAscent() / 4;
@@ -103,11 +112,9 @@ public class YAxis extends Axis {
      * @param height    the chart height
      */
     private void drawAxisLines(Graphics2D g2d, AffineTransform transform, int width, int height) {
-
         int axisX = (position == AxisPosition.RIGHT) ? width - maxLabelWidth-(config.getMarginRight()) : 0;
 
         g2d.drawLine(axisX, 0, axisX, height);
-
 
         try {
             topLeft = transform.inverseTransform(new Point2D.Double(0, 0), null);
@@ -119,7 +126,17 @@ public class YAxis extends Axis {
         effectiveMin = Math.min(topLeft.getY(), bottomRight.getY());
         effectiveMax = Math.max(topLeft.getY(), bottomRight.getY());
         range = effectiveMax - effectiveMin;
-        gridSpacing = getIntervals(range);
+
+        // Calculate desired number of grid lines based on height
+        int desiredGridLines = Math.max(minGridLines, height / pixelsPerGridLine);
+
+        if (getRange == -1) {
+            // Calculate grid spacing based on desired number of lines
+            gridSpacing = calculateGridSpacing(range, desiredGridLines);
+        } else {
+            gridSpacing = getRange;
+        }
+
         startGrid = Math.floor(effectiveMin / gridSpacing) * gridSpacing;
 
         g2d.setColor(config.getGridColor());
@@ -129,7 +146,7 @@ public class YAxis extends Axis {
             transform.transform(pt, pt);
             double screenY = pt.getY();
 
-            if (screenY > 0 && screenY < height - config.getMarginBottom()) {
+            if (screenY > 0 && screenY < height ) {
                 g2d.drawLine(0, (int) screenY, width-config.getyPad(), (int) screenY);
 
                 if (position == AxisPosition.RIGHT) {
@@ -137,7 +154,6 @@ public class YAxis extends Axis {
                 } else {
                     g2d.drawLine(width, (int) screenY, width + tickLength, (int) screenY);
                 }
-
             }
         }
         g2d.setColor(config.getBackgroundColor());
@@ -145,6 +161,41 @@ public class YAxis extends Axis {
         config.setyPad(Math.abs(width-axisX));
     }
 
+    /**
+     * Calculates grid spacing based on range and desired number of lines
+     */
+    private double calculateGridSpacing(double range, int desiredLines) {
+        double rawSpacing = range / desiredLines;
+        return findNiceInterval(rawSpacing);
+    }
+
+    /**
+     * Finds a "nice" interval close to the raw spacing that's easy to read
+     */
+    private double findNiceInterval(double rawSpacing) {
+        double exponent = Math.floor(Math.log10(rawSpacing));
+        double fraction = rawSpacing / Math.pow(10, exponent);
+
+        // Standard nice values: 1, 2, 2.5, 5, 10
+        double[] niceFractions = {1.0, 2.0, 2.5, 5.0, 10.0};
+        double niceFraction = niceFractions[0];
+
+        for (double nf : niceFractions) {
+            if (nf >= fraction) {
+                niceFraction = nf;
+                break;
+            }
+        }
+
+        // If we didn't find a nice fraction larger than our raw spacing,
+        // use the smallest nice fraction at the next exponent
+        if (niceFraction < fraction) {
+            exponent += 1;
+            niceFraction = niceFractions[0];
+        }
+
+        return niceFraction * Math.pow(10, exponent);
+    }
     /**
      * Determines an appropriate interval between Y-axis grid lines based on the visible range.
      *
@@ -189,25 +240,8 @@ public class YAxis extends Axis {
         decimalFormat = new DecimalFormat(pattern.toString());
     }
 
-    /**
-     * Checks whether a given point is within the Y-axis (not used in this implementation).
-     *
-     * @param point the point to check
-     * @return always false
-     */
-    @Override
-    protected boolean contains(Point2D point) {
-        return false;
-    }
 
-    /**
-     * Moves the axis position if needed (empty implementation).
-     *
-     * @param dx horizontal delta
-     * @param dy vertical delta
-     */
-    @Override
-    protected void move(double dx, double dy) {
-        // Implementation if needed
+    public void setRange(double range) {
+        this.getRange = range;
     }
 }

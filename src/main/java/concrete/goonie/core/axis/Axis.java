@@ -1,60 +1,32 @@
 package concrete.goonie.core.axis;
 
 import concrete.goonie.ChartConfig;
-import concrete.goonie.core.Renderer;
+import concrete.goonie.core.chartlayers.ChartWindow;
+import concrete.goonie.core.ENUM_TIMEFRAME;
 
-/**
- * The {@code Axis} class is an abstract base class for chart axis renderers (e.g., X and Y axes).
- * It provides common configuration such as tick length, axis position, and chart settings.
- * <p>
- * Subclasses must implement the actual rendering logic by extending this class and
- * customizing axis-specific behaviors.
- *
- * @see AxisPosition
- * @see ChartConfig
- * @see XAxis
- * @see YAxis
- */
-abstract class Axis extends Renderer {
+import java.util.HashMap;
+import java.util.Map;
 
-    /**
-     * The length of the axis ticks in pixels.
-     */
-    protected int tickLength = 3;
-
-    /**
-     * The position of the axis relative to the chart (e.g., LEFT, RIGHT, TOP, BOTTOM).
-     */
-    protected AxisPosition position = AxisPosition.RIGHT;
-
-    Axis(ChartConfig config) {
-        super(config);
+abstract class Axis extends ChartWindow {
+    static final Map<Integer, String> MONTH_ABBREV = new HashMap<>();
+    static {
+        MONTH_ABBREV.put(1, "Jan");
+        MONTH_ABBREV.put(2, "Feb");
+        MONTH_ABBREV.put(3, "Mar");
+        MONTH_ABBREV.put(4, "Apr");
+        MONTH_ABBREV.put(5, "May");
+        MONTH_ABBREV.put(6, "Jun");
+        MONTH_ABBREV.put(7, "Jul");
+        MONTH_ABBREV.put(8, "Aug");
+        MONTH_ABBREV.put(9, "Sep");
+        MONTH_ABBREV.put(10, "Oct");
+        MONTH_ABBREV.put(11, "Nov");
+        MONTH_ABBREV.put(12, "Dec");
     }
 
-    /**
-     * Sets the position of the axis.
-     *
-     * @param position the position of the axis (e.g., LEFT, RIGHT)
-     */
-    public void setPosition(AxisPosition position) {
-        this.position = position;
+
+    public Axis(ENUM_TIMEFRAME timeframe, ChartConfig config) {
+        super(timeframe, config);
     }
 
-    /**
-     * Returns the current position of the axis.
-     *
-     * @return the axis position
-     */
-    public AxisPosition getPosition() {
-        return position;
-    }
-
-    /**
-     * Sets the chart configuration used by the axis.
-     *
-     * @param config the {@link ChartConfig} instance containing style and rendering preferences
-     */
-    public void setConfig(ChartConfig config) {
-        this.config = config;
-    }
 }

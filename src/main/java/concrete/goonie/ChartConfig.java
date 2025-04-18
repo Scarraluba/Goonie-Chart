@@ -2,6 +2,7 @@ package concrete.goonie;
 
 import java.awt.*;
 import java.io.File;
+import java.time.LocalDateTime;
 
 public class ChartConfig {
     // Colors
@@ -17,7 +18,7 @@ public class ChartConfig {
 
     // Fonts
     private Font textFont = new Font("Arial", Font.PLAIN, 10);
-
+    private LocalDateTime startDateTime = LocalDateTime.of(2024, 1, 1, 0, 0);
     // Margins
     private int marginTop = 30;
     private int marginBottom = 40;
@@ -32,7 +33,7 @@ public class ChartConfig {
     // Dimensions
     private int candleWidth = 5;
     private int wickWidth = 1;
-    private int gridSpacing = 50;
+    private double gridSpacing = 50;
     private int labelPadding = 5;
 
     // Chart Behavior
@@ -132,7 +133,7 @@ public class ChartConfig {
         return wickWidth;
     }
 
-    public int getGridSpacing() {
+    public double getGridSpacing() {
         return gridSpacing;
     }
 
@@ -280,7 +281,7 @@ public class ChartConfig {
         return this;
     }
 
-    public ChartConfig setGridSpacing(int spacing) {
+    public ChartConfig setGridSpacing(double spacing) {
         this.gridSpacing = spacing;
         return this;
     }
@@ -353,5 +354,13 @@ public class ChartConfig {
           //  System.out.println("Inter font not found, falling back to Roboto/Arial");
         }
         return interFont;
+    }
+
+    public LocalDateTime getStartDateTime() {
+        return startDateTime;
+    }
+
+    public void setStartDateTime(LocalDateTime startDateTime) {
+        this.startDateTime = startDateTime;
     }
 }
